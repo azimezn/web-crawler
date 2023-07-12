@@ -8,7 +8,6 @@ async function crawl() {
 
     // wrapping the code in a try block to catch and handle potential errors
     try {
-
         const baseURL = "https://www.georgiamls.com/";
 
         // an array to store all data of agents
@@ -20,9 +19,13 @@ async function crawl() {
         // loop over each letter
         for (const letter of letters) {
 
-            let currentPageURL = `${baseURL}/real-estate-agents/directory/${letter}/1`
+            // Extract the total number of pages
+            const totalPages = 5;
+            // const totalPages = $(".small.listing-pagination-count").text().split(" ")[2];
 
-            while (currentPageURL) {
+            for (let currentPageNumber = 1; currentPageNumber <= totalPages; currentPageNumber++) {
+
+                let currentPageURL = `${baseURL}/real-estate-agents/directory/${letter}/${currentPageNumber}`
                 console.log("checking page:", currentPageURL);
 
                 // HTTP GET request to store the HTML content, which is the response, on given webpage
@@ -43,9 +46,6 @@ async function crawl() {
                     // add the object to the agents array
                     agents.push(agent);
                 })
-
-                const nextButton = $(".pagination a.btn-success:contains('Next')");
-                currentPageURL = nextButton.length ? `${baseURL}${nextButton.attr("href")}` : null;
             }
         };
 
