@@ -19,9 +19,20 @@ async function crawl() {
         // loop over each letter
         for (const letter of letters) {
 
-            // Extract the total number of pages
-            const totalPages = 5;
-            // const totalPages = $(".small.listing-pagination-count").text().split(" ")[2];
+            // HTTP GET request to store the HTML content, which is the response, on given webpage
+            // await waits for the response to be received before moving on
+            const firstPageHTML = await axios.get(`${baseURL}/real-estate-agents/directory/${letter}/1`);
+            // makes it possible to manipulate the HTML from the webpage
+            const $ = cheerio.load(firstPageHTML.data);
+
+            // extract the total number of pages from the webpage html
+            const totalPagesText = $(".listing-pagination-count").text();
+            // get the specific info using a regular expression
+            // results in null or an array with two elements - ["page 1 of 15", "15"]
+            const totalPagesMatch = totalPagesText.match(/Page 1 of (\d+)/);
+            // if totalPages is not null, the 2nd index of totalPagesMatch will be used
+            const totalPages = totalPagesMatch ? parseInt(totalPagesMatch[1]) : NaN;
+            console.log(totalPages);
 
             for (let currentPageNumber = 1; currentPageNumber <= totalPages; currentPageNumber++) {
 
