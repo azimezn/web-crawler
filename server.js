@@ -61,36 +61,28 @@ async function crawl() {
                     const agentPageHTML = await axios.get(`${baseURL}${agentURL}`);
                     const $agentPage = cheerio.load(agentPageHTML.data);
 
-                    // Get the elements with the class "col-md-3"
+                    // get the elements with the class "col-md-3"
                     const colMd3Elements = $agentPage('.col-md-3');
 
-                    // Extract information from the first element
+                    // extract information from the 1st "col-md-3" element
                     const colMd3 = colMd3Elements.eq(0); // Use .eq(0) to select the first element
 
-                    // Extract the agent name
-                    // const agentName = colMd3.find('strong').text().trim();
                     const agentName = $(element).find("td:nth-child(1) a").text().trim();
-
-                    // Extract the direct phone number
                     const directPhone = colMd3.find('p:nth-child(3) a').text().trim();
-
-                    // Extract the office phone number
                     const officePhone = colMd3.find('p:nth-child(4) a').text().trim();
-
-                    // Extract the agent website URL
                     const agentWebsite = colMd3.find('p:nth-child(5) a').attr('href');
+                    // const officeName = $(element).find("td:nth-child(4) a").text().trim();
 
-                    // Extract the office name
-                    // const officeName = colMd3.find('p:nth-child(1) a').text().trim();
-                    const officeName = $(element).find("td:nth-child(4) a").text().trim();
+                    // its from the 2nd "col-md-3" element
+                    const officeAddressLines = colMd3Elements.eq(1).find('p:nth-child(1)').text().trim();
+                    // format the address
+                    // split at every new line ('\n')
+                    // map through each line and trim
+                    const officeAddress = officeAddressLines.split('\n').map(line => line.trim());
+                    // destructure to get different lines as different variables
+                    const [officeName, addressLine1, addressLine2, phoneNumber] = officeAddress;
 
-                    // // Extract the office address
-                    // const officeAddress = colMd3.find('p:nth-child(1)').html()
-                    //     .replace(/<br>/g, '\n') // Replace <br> tags with line breaks
-                    //     .replace(/<\/?[^>]+(>|$)/g, '') // Remove any remaining HTML tags
-                    //     .trim();
-
-                    const agent = { agentName, directPhone, officePhone, agentWebsite, officeName };
+                    const agent = { agentName, directPhone, officePhone, agentWebsite, officeName, addressLine1, addressLine2 };
                     agents.push(agent);
                     console.log("Agents:", agents);
                 });
