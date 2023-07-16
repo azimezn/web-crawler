@@ -81,8 +81,10 @@ async function crawl() {
                     const officeAddress = officeAddressLines.split('\n').map(line => line.trim());
                     // destructure to get different lines as different variables
                     const [officeName, addressLine1, addressLine2, phoneNumber] = officeAddress;
+                    // split the addressLine2 and extract the last element, which is always the zip code
+                    const zipCode = addressLine2.split(' ').pop();
 
-                    const agent = { agentName, directPhone, officePhone, agentWebsite, officeName, addressLine1, addressLine2 };
+                    const agent = { agentName, directPhone, officePhone, agentWebsite, officeName, addressLine1, addressLine2, zipCode };
                     agents.push(agent);
                     console.log("Agents:", agents);
                 });
