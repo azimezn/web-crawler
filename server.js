@@ -45,25 +45,12 @@ async function crawl() {
                 const currentPageHTML = await axios.get(currentPageURL);
                 const $ = cheerio.load(currentPageHTML.data);
 
-                // // retrieving the data through each row of current page
-                // $("tr").each((index, element) => {
-                //     const agentName = $(element).find("td:nth-child(1) a").text().trim();
-                //     const phone = $(element).find("td:nth-child(2) a").text().trim();
-                //     const phoneOffice = $(element).find("td:nth-child(3) a").text().trim();
-                //     const office = $(element).find("td:nth-child(4) a").text().trim();
-
-                //     // create an object with the information
-                //     const agent = { agentName, phone, phoneOffice, office };
-                //     // add the object to the agents array
-                //     agents.push(agent);
-                // })
-
-
+                // retrieving the data through each row of current page
                 $("tr").each(async (index, element) => {
                     // get URL for specific agent
                     const agentURL = $(element).find("td:nth-child(1) a").attr("href");
                     console.log("checking agent:", agentURL)
-                    
+
                     // if agentURL is undefined, skip it
                     if (!agentURL) {
                         console.log("skipping agent:", agentURL);
@@ -73,13 +60,6 @@ async function crawl() {
 
                     const agentPageHTML = await axios.get(`${baseURL}${agentURL}`);
                     const $agentPage = cheerio.load(agentPageHTML.data);
-
-
-                    // // Extract information from the agent's page
-                    // const agentName = $agentPage(".view-agent-detail .phone span").text().trim();
-                    // const agentPhone = $agentPage(".view-agent-detail .phone span").text().trim();
-                    // const agentEmail = $agentPage(".view-agent-detail .email a").text().trim();
-                    // const agentWebsite = $agentPage(".view-agent-detail .website a").text().trim();
 
                     // Get the elements with the class "col-md-3"
                     const colMd3Elements = $agentPage('.col-md-3');
@@ -94,14 +74,15 @@ async function crawl() {
                     // Extract the direct phone number
                     const directPhone = colMd3.find('p:nth-child(3) a').text().trim();
 
-                    // // Extract the office phone number
-                    // const officePhone = colMd3.find('p:nth-child(4) a').text().trim();
+                    // Extract the office phone number
+                    const officePhone = colMd3.find('p:nth-child(4) a').text().trim();
 
-                    // // Extract the agent website URL
-                    // const agentWebsite = colMd3.find('p:nth-child(5) a').attr('href');
+                    // Extract the agent website URL
+                    const agentWebsite = colMd3.find('p:nth-child(5) a').attr('href');
 
-                    // // Extract the office name
+                    // Extract the office name
                     // const officeName = colMd3.find('p:nth-child(1) a').text().trim();
+                    const officeName = $(element).find("td:nth-child(4) a").text().trim();
 
                     // // Extract the office address
                     // const officeAddress = colMd3.find('p:nth-child(1)').html()
@@ -109,18 +90,7 @@ async function crawl() {
                     //     .replace(/<\/?[^>]+(>|$)/g, '') // Remove any remaining HTML tags
                     //     .trim();
 
-                    const agent = { agentName, directPhone };
-                    
-                    // Log the extracted information
-                    // console.log('Agent Name:', agentName);
-                    // console.log('Direct Phone:', directPhone);
-                    // console.log('Office Phone:', officePhone);
-                    // console.log('Agent Website:', agentWebsite);
-                    // console.log('Office Name:', officeName);
-                    // console.log('Office Address:', officeAddress);
-
-                    // const agent = { agentName, agentPhone, agentEmail, agentWebsite };
-                    // const agent = { agentURL };
+                    const agent = { agentName, directPhone, officePhone, agentWebsite, officeName };
                     agents.push(agent);
                     console.log("Agents:", agents);
                 });
