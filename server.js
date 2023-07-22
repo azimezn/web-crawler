@@ -8,13 +8,12 @@ const xlsx = require("xlsx");
 axiosRetry(axios, { retries: 3 });
 
 async function crawl() {
-    console.log("entered crawl function");
+    console.log("crawling...")
+    const realtors = [];
 
     try {
-        console.log("entered first try catch");
         const mainPage = await axios.get("https://cherokeeconnectga.com/directory/#!directory");
         const $ = cheerio.load(mainPage.data);
-        const realtors = [];
 
         // use puppeteer to scroll down and load more content
         const browser = await puppeteer.launch({ headless: "new" });
@@ -22,7 +21,6 @@ async function crawl() {
         await page.goto("https://cherokeeconnectga.com/directory/#!directory");
         // wait for initial content to load
         await page.waitForTimeout(3000);
-
         // wait for specific elements to load after scrolling
         await page.waitForSelector("#SFylpcrd a", { timeout: 5000 });
 
@@ -46,20 +44,41 @@ async function crawl() {
             // wait for page to load
             await page.waitForTimeout(3000);
 
-            // extract realtor name with puppeteer
+            // wait for .SFbizinf element to load before extracting its HTML content
+            await page.waitForSelector(".SFbizinf");
+
+            // extract information with puppeteer
             const realtorName = await page.evaluate(() => {
                 const realtorNameElement = document.querySelector('.SFlst h3');
                 return realtorNameElement ? realtorNameElement.textContent.trim() : null;
             });
-            console.log(realtorName);
+
+            const agentName = await page.evaluate(() => {
+                const agentNameElement = document.querySelector('.SFlst .SFbizctcctc');
+                return agentNameElement ? agentNameElement.textContent.trim() : null;
+            });
+
+            const phoneNumber = await page.evaluate(() => {
+                const phoneNumberElement = document.querySelector('.SFlst .SFbizctcphn');
+                return phoneNumberElement ? phoneNumberElement.textContent.trim() : null;
+            });
+
+            const addressLine1 = await page.evaluate(() => {
+                const addressLine1Element = document.querySelector('.SFbizinf [itemprop="streetAddress"]');
+                return addressLine1Element ? addressLine1Element.textContent.trim() : null;
+            });
+
+            const addressLine2 = await page.evaluate(() => {
+                const addressLine1Element = document.querySelector('.SFbizinf [itemprop="addressLocality"]');
+                return addressLine1Element ? addressLine1Element.textContent.trim() : null;
+            });
+
+            // regex to match the zipcode, get the first element in the array
+            const zipCode = addressLine2 ? (addressLine2.match(/\b\d{5}\b/) || [])[0] : '';
+
+            const realtor = { realtorName, agentName, phoneNumber, addressLine1, addressLine2, zipCode };
+            realtors.push(realtor);
         };
-
-
-        // const realtor = { realtorName };
-        // realtor.push(realtors);
-        // } catch (error) {
-        //     console.error("An error occurred while fetching realtor page:", error);
-        // }
 
         // close the browser after the crawling is done
         await browser.close();
@@ -67,21 +86,20 @@ async function crawl() {
     } catch (error) {
         console.error("An error occurred:", error);
     }
+
+    console.log("Realtors:", realtors);
+    console.table(realtors);
+
+    const realtorDataSheet = xlsx.utils.json_to_sheet(realtors);
+    const realtorDataWorkbook = xlsx.utils.book_new();
+    xlsx.utils.book_append_sheet(realtorDataWorkbook, realtorDataSheet, "Realtor Data");
+    xlsx.writeFile(realtorDataWorkbook, "realtor_data.xlsx", { bookType: "xlsx", type: "buffer" }, (err) => {
+        if (err) {
+            console.error("An error occurred while exporting the realtor data:", err);
+        } else {
+            console.log("Realtor data exported to realtor_data.xlsx");
+        }
+    });
 };
-
-
-// console.log("Realtors:", realtors);
-// console.table(realtors);
-
-// const agentDataSheet = xlsx.utils.json_to_sheet(agents);
-// const agentDataWorkbook = xlsx.utils.book_new();
-// xlsx.utils.book_append_sheet(agentDataWorkbook, agentDataSheet, "Agent Data");
-// xlsx.writeFile(agentDataWorkbook, "agent_data.xlsx", { bookType: "xlsx", type: "buffer" }, (err) => {
-//     if (err) {
-//         console.error("An error occurred while exporting the agent data:", err);
-//     } else {
-//         console.log("Agent data exported to agent_data.xlsx");
-//     }
-// });
 
 crawl();
