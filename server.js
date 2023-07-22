@@ -1,6 +1,8 @@
 const axios = require("axios");
 const axiosRetry = require("axios-retry");
 const cheerio = require("cheerio");
+// puppeteer is needed because content is loading dynamically, i need to scroll for more content
+const puppeteer = require("puppeteer");
 const xlsx = require("xlsx");
 
 axiosRetry(axios, { retries: 3 });
@@ -9,62 +11,59 @@ async function crawl() {
     console.log("entered crawl function");
 
     try {
-        const baseURL = await axios.get("https://cherokeeconnectga.com/directory");
-        const $ = cheerio.load(baseURL.data);
+        console.log("entered first try catch");
+        const mainPage = await axios.get("https://cherokeeconnectga.com/directory/#!directory");
+        const $ = cheerio.load(mainPage.data);
         const realtors = [];
 
-        // go through each agent and get link
-        // $("#SFylpcrd a").each(async (index, element) => {
-        //     const realtorURL = $(element).attr("href");
-        //     console.log("checking realtor:", realtorURL)
-        // });
+        // use puppeteer to scroll down and load more content
+        const browser = await puppeteer.launch({ headless: "new" });
+        const page = await browser.newPage();
+        await page.goto("https://cherokeeconnectga.com/directory/#!directory");
+        // wait for initial content to load
+        await page.waitForTimeout(3000);
 
-        // if (!realtortURL) {
-        //     console.log("skipping realtor:", realtor);
-        //     return;
+        // wait for specific elements to load after scrolling
+        await page.waitForSelector("#SFylpcrd a", { timeout: 5000 });
+
+        // get all the realtor URLs with puppeteer
+        const realtorURLs = await page.evaluate(() => {
+            const realtorLinks = document.querySelectorAll("#SFylpcrd a");
+            return Array.from(realtorLinks).map(link => link.href);
+        });
+
+        // go through each realtorURL
+        for (const realtorURL of realtorURLs) {
+            console.log("checking realtor:", realtorURL);
+
+            if (!realtorURL) {
+                console.log("skipping realtor:", realtorURL);
+                return;
+            }
+
+            // now we're on the realtor's page
+            await page.goto(realtorURL);
+            // wait for page to load
+            await page.waitForTimeout(3000);
+
+            // extract realtor name with puppeteer
+            const realtorName = await page.evaluate(() => {
+                const realtorNameElement = document.querySelector('.SFlst h3');
+                return realtorNameElement ? realtorNameElement.textContent.trim() : null;
+            });
+            console.log(realtorName);
+        };
+
+
+        // const realtor = { realtorName };
+        // realtor.push(realtors);
+        // } catch (error) {
+        //     console.error("An error occurred while fetching realtor page:", error);
         // }
 
-        // const currentPageURL = `${baseURL}/${realtorURL}`
-        // console.log("checking page:", currentPageURL);
+        // close the browser after the crawling is done
+        await browser.close();
 
-        try {
-            // const realtorPageHTML = await axios.get(`${currentPageURL}`);
-            // const $realtorPage = cheerio.load(realtorPageHTML.data);
-
-
-
-
-
-
-
-            // // get the elements with the class "col-md-3"
-            // const colMd3Elements = $agentPage('.col-md-3');
-
-
-            // const colMd3 = colMd3Elements.eq(0);
-
-            // const agentName = $(element).find("td:nth-child(1) a").text().trim();
-            // const directPhone = colMd3.find('p:nth-child(3) a').text().trim();
-            // const officePhone = colMd3.find('p:nth-child(4) a').text().trim();
-            // const agentWebsite = colMd3.find('p:nth-child(5) a').attr('href');
-
-            // // its from the 2nd "col-md-3" element
-            // const officeAddressLines = colMd3Elements.eq(1).find('p:nth-child(1)').text().trim();
-            // // format the address
-            // // split at every new line ('\n')
-            // // map through each line and trim
-            // const officeAddress = officeAddressLines.split('\n').map(line => line.trim());
-            // // destructure to get different lines as different variables
-            // const [officeName, addressLine1, addressLine2, phoneNumber] = officeAddress;
-            // // split the addressLine2 and extract the last element, which is always the zip code
-            // // if no addressLine2, keep it empty
-            // const zipCode = addressLine2 ? addressLine2.split(' ').pop() : '';
-
-            // const agent = { agentName, directPhone, officePhone, agentWebsite, officeName, addressLine1, addressLine2, zipCode };
-            // agents.push(agent);
-        } catch (error) {
-            console.error("An error occurred while fetching realtor page:", error);
-        }
     } catch (error) {
         console.error("An error occurred:", error);
     }

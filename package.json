@@ -21,6 +21,7 @@
     "axios": "^1.4.0",
     "axios-retry": "^3.5.1",
     "cheerio": "^1.0.0-rc.12",
+    "puppeteer": "^20.9.0",
     "xlsx": "^0.18.5"
   }
 }
