@@ -21,6 +21,19 @@ async function crawl() {
         await page.goto("https://cherokeeconnectga.com/directory/#!directory");
         // wait for initial content to load
         await page.waitForTimeout(3000);
+
+        let scroll = 0;
+
+        // before crawling, scroll down to load more realtors
+        for (let i = 0; i < 1000; i++) {
+            scroll++
+            console.log(`scrolled ${scroll} times`)
+            await page.evaluate(() => {
+                window.scrollBy(0, window.innerHeight);
+            });
+            // wait after scrolling to load
+            await page.waitForTimeout(2000);
+        }
         // wait for specific elements to load after scrolling
         await page.waitForSelector("#SFylpcrd a", { timeout: 5000 });
 
@@ -29,6 +42,7 @@ async function crawl() {
             const realtorLinks = document.querySelectorAll("#SFylpcrd a");
             return Array.from(realtorLinks).map(link => link.href);
         });
+        console.log("Realtor URLs:", realtorURLs);
 
         // go through each realtorURL
         for (const realtorURL of realtorURLs) {
@@ -36,7 +50,7 @@ async function crawl() {
 
             if (!realtorURL) {
                 console.log("skipping realtor:", realtorURL);
-                return;
+                continue;
             }
 
             // now we're on the realtor's page
@@ -76,8 +90,10 @@ async function crawl() {
             // regex to match the zipcode, get the first element in the array
             const zipCode = addressLine2 ? (addressLine2.match(/\b\d{5}\b/) || [])[0] : '';
 
-            const realtor = { realtorName, agentName, phoneNumber, addressLine1, addressLine2, zipCode };
+            const realtor = { realtorName, agentName, phoneNumber, addressLine1, addressLine2, zipCode, realtorURL };
             realtors.push(realtor);
+
+            console.log("Realtor:", realtor);
         };
 
         // close the browser after the crawling is done
